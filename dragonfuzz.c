@@ -329,7 +329,8 @@ static void print_EC_POINT(struct state *state, EC_POINT *P, char *msg)
   BIGNUM *x = BN_new();
   BIGNUM *y = BN_new();
 
-  if (EC_POINT_get_affine_coordinates_GFp(state->group, P, x, y, NULL))
+  // if (EC_POINT_get_affine_coordinates_GFp(state->group, P, x, y, NULL))
+  if (EC_POINT_get_affine_coordinates(state->group, P, x, y, NULL))
   {
     printf("%s EC_POINT = (\n\t", msg);
     BN_print_fp(stdout, x);
@@ -579,7 +580,7 @@ static inline int
 card_write(struct state *state, void *buf, int len, struct tx_info *ti)
 {
   int dlt = DLT_IEEE802_11;
-  return wi_write(state->wi, NULL, &dlt, buf, len, ti);
+  return wi_write(state->wi, NULL, dlt, buf, len, ti);
 }
 
 static inline int card_get_mac(struct state *state, unsigned char *mac)
@@ -791,7 +792,8 @@ derive_PWE(struct state *state)
   BN_bn2bin(state->prime, primebuf);
   primebitlen = BN_num_bits(state->prime);
 
-  if (!EC_GROUP_get_curve_GFp(state->group, NULL, a, b, NULL))
+  // if (!EC_GROUP_get_curve_GFp(state->group, NULL, a, b, NULL))
+  if (!EC_GROUP_get_curve(state->group, NULL, a, b, NULL))
   {
     free(prfbuf);
   }
@@ -967,7 +969,8 @@ derive_PWE(struct state *state)
    * assign a point using x and our discriminator (is_odd)
    */
   if ((found == 0) ||
-      (!EC_POINT_set_compressed_coordinates_GFp(state->group, state->PWE, x, is_odd, state->bnctx)))
+      // (!EC_POINT_set_compressed_coordinates_GFp(state->group, state->PWE, x, is_odd, state->bnctx)))
+      (!EC_POINT_set_compressed_coordinates(state->group, state->PWE, x, is_odd, state->bnctx)))
   {
     fprintf(stderr, "Could not find PWE after 40 iterations.");
     EC_POINT_free(state->PWE);
@@ -1034,7 +1037,8 @@ uint8_t *ecc_point2bin(struct state *state, EC_POINT *point, uint8_t *out)
   // XXX check allocation results
 
   // XXX check return value
-  EC_POINT_get_affine_coordinates_GFp(state->group, point, bignum_x, bignum_y, state->bnctx);
+  EC_POINT_get_affine_coordinates(state->group, point, bignum_x, bignum_y, state->bnctx);
+  // EC_POINT_get_affine_coordinates_GFp(state->group, point, bignum_x, bignum_y, state->bnctx);
 
   // XXX check if out buffer is large enough
   bignum2bin(bignum_x, out, num_bytes);
@@ -1283,7 +1287,8 @@ static void inject_fuzzed_sae_commit(struct state *state, const uint8_t *token, 
   BIGNUM *bignum_x = BN_new();
   BIGNUM *bignum_y = BN_new();
 
-  EC_POINT_get_affine_coordinates_GFp(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
+  // EC_POINT_get_affine_coordinates_GFp(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
+  EC_POINT_get_affine_coordinates(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
 
   if (test_enabled(state, FUZZ_COMMIT_INVALID_ELEMENT))
   {
@@ -1406,7 +1411,8 @@ static void fuzz_sae_commit_variable_anti_clogging(struct state *state)
     BIGNUM *bignum_x = BN_new();
     BIGNUM *bignum_y = BN_new();
 
-    EC_POINT_get_affine_coordinates_GFp(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
+    // EC_POINT_get_affine_coordinates_GFp(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
+    EC_POINT_get_affine_coordinates(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
 
     bignum2bin(bignum_x, pos, num_bytes);
     bignum2bin(bignum_y, pos + num_bytes, num_bytes);
@@ -1443,7 +1449,8 @@ static void fuzz_sae_commit_variable_password_identifier(struct state *state)
   BIGNUM *bignum_x = BN_new();
   BIGNUM *bignum_y = BN_new();
 
-  EC_POINT_get_affine_coordinates_GFp(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
+  EC_POINT_get_affine_coordinates(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
+  // EC_POINT_get_affine_coordinates_GFp(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
 
   bignum2bin(bignum_x, pos, num_bytes);
   bignum2bin(bignum_y, pos + num_bytes, num_bytes);
@@ -1513,7 +1520,8 @@ static void fuzz_sae_commit_status_codes(struct state *state)
   BIGNUM *bignum_x = BN_new();
   BIGNUM *bignum_y = BN_new();
 
-  EC_POINT_get_affine_coordinates_GFp(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
+  EC_POINT_get_affine_coordinates(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
+  // EC_POINT_get_affine_coordinates_GFp(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
 
   bignum2bin(bignum_x, pos, num_bytes);
   bignum2bin(bignum_y, pos + num_bytes, num_bytes);
@@ -1571,7 +1579,9 @@ static void dos_commit(struct state *state)
   /* generate random own scalar */
 
   BIGNUM *random_scalar = BN_new();
-  BN_pseudo_rand(random_scalar, BN_num_bits(state->order) - 1, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY);
+  // BN_pseudo_rand(random_scalar, BN_num_bits(state->order) - 1, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY);
+  BN_rand(random_scalar, BN_num_bits(state->order) - 1, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY);
+
   bignum2bin(random_scalar, pos, num_bytes);
   pos += num_bytes;
 
@@ -1580,9 +1590,14 @@ static void dos_commit(struct state *state)
   BIGNUM *bignum_x = BN_new();
   BIGNUM *bignum_y = BN_new();
 
-  BN_pseudo_rand(bignum_x, BN_num_bits(state->order) - 1, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY);
-  BN_pseudo_rand(bignum_y, BN_num_bits(state->order) - 1, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY);
-  EC_POINT_get_affine_coordinates_GFp(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
+  // BN_pseudo_rand(bignum_x, BN_num_bits(state->order) - 1, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY);
+  BN_rand(random_scalar, BN_num_bits(state->order) - 1, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY);
+
+  // BN_pseudo_rand(bignum_y, BN_num_bits(state->order) - 1, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY);
+  BN_rand(random_scalar, BN_num_bits(state->order) - 1, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY);
+
+  EC_POINT_get_affine_coordinates(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
+  // EC_POINT_get_affine_coordinates_GFp(state->group, state->own_element, bignum_x, bignum_y, state->bnctx);
 
   bignum2bin(bignum_x, pos, num_bytes);
   bignum2bin(bignum_y, pos + num_bytes, num_bytes);
@@ -1815,7 +1830,8 @@ static int sae_process_commit(struct state *state)
       EC_POINT_mul(state->group, state->K, NULL, state->K, state->private_val, state->bnctx) == 0 ||
       EC_POINT_is_at_infinity(state->group, state->K) ||
       EC_POINT_is_on_curve(state->group, state->K, state->bnctx) != 1 ||
-      EC_POINT_get_affine_coordinates_GFp(state->group, state->K, state->k, NULL, state->bnctx) == 0)
+      EC_POINT_get_affine_coordinates(state->group, state->K, state->k, NULL, state->bnctx) == 0)
+  // EC_POINT_get_affine_coordinates_GFp(state->group, state->K, state->k, NULL, state->bnctx) == 0)
   {
     printf("Failed to compute K and k\n");
   }
@@ -2251,9 +2267,10 @@ static void process_packet(struct state *state, unsigned char *buf, int len)
       BN_bin2bn(buf + 64, 32, peer_element_x);
       BN_bin2bn(buf + 96, 32, peer_element_y);
 
-      EC_POINT_set_affine_coordinates_GFp(state->group, state->peer_element,
-                                          peer_element_x, peer_element_y,
-                                          state->bnctx);
+      EC_POINT_set_affine_coordinates(state->group, state->peer_element,
+                                      // EC_POINT_set_affine_coordinates_GFp(state->group, state->peer_element,
+                                      peer_element_x, peer_element_y,
+                                      state->bnctx);
 
       if (EC_POINT_is_on_curve(state->group, state->peer_element, state->bnctx) != 1)
       {
@@ -2729,7 +2746,8 @@ int initialize_crypto_context(struct state *state)
     return -1;
   }
 
-  if (!EC_GROUP_get_curve_GFp(state->group, state->prime, state->a, state->b, state->bnctx) ||
+  if (!EC_GROUP_get_curve(state->group, state->prime, state->a, state->b, state->bnctx) ||
+      // if (!EC_GROUP_get_curve_GFp(state->group, state->prime, state->a, state->b, state->bnctx) ||
       !EC_GROUP_get_order(state->group, state->order, state->bnctx))
   {
     fprintf(stderr, "Failed to get parameters of group %d\n", state->groupid);
